@@ -24,7 +24,7 @@ Image editor for [MoonShine](https://moonshine-laravel.com/) admin panel powered
 - Laravel 11+ / 12+
 - MoonShine 4.x
 - `yurizoom/moonshine-media-manager` ^4.0
-- `intervention/image` ^3.0
+- `intervention/image-laravel` ^1.0 (installs `intervention/image` ^3.0 automatically)
 - PHP Imagick extension (recommended) or GD
 
 ## Installation
@@ -32,6 +32,24 @@ Image editor for [MoonShine](https://moonshine-laravel.com/) admin panel powered
 ```bash
 composer require povly/moonshine-image-editor
 ```
+
+### Image Optimization Dependency
+
+For image optimization and format conversion (WebP/AVIF) to work, install Intervention Image:
+
+```bash
+composer require intervention/image-laravel
+```
+
+> **Note:** Only `intervention/image-laravel` is needed — it automatically installs `intervention/image` as a dependency.
+
+Publish the Intervention Image config (optional):
+
+```bash
+php artisan vendor:publish --provider="Intervention\Image\Laravel\ServiceProvider"
+```
+
+This creates `config/image.php` where you can set the default driver (GD or Imagick).
 
 Publish assets:
 
