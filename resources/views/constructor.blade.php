@@ -3,16 +3,19 @@
 ])
 
 <script>window.ImageConstructorConfig = {{ Js::from($config) }};</script>
-<script src="{{ asset('vendor/image-constructor/filerobot-image-editor.min.js') }}"></script>
-<script src="{{ asset('vendor/image-constructor/image-constructor.js') }}"></script>
 
 <x-moonshine::modal
     name="image-constructor"
     title="{{ __('image-constructor::image-constructor.image_editor') }}"
     :wide="true"
 >
-    <div id="ie-container" style="width: 100%; height: 85vh;"></div>
-    <style>
-        .FIE_tab-label { text-align: center; }
-    </style>
+    <div id="ie-toolbar">
+        <label for="ic-format">{{ __('image-constructor::image-constructor.save_as') }}:</label>
+        <select id="ic-format">
+            @foreach($config['available_formats'] ?? ['png', 'jpg'] as $fmt)
+                <option value="{{ $fmt }}">{{ strtoupper($fmt) }}</option>
+            @endforeach
+        </select>
+    </div>
+    <div id="ie-container"></div>
 </x-moonshine::modal>

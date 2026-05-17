@@ -5,6 +5,29 @@
         return msgs[key] || key;
     }
 
+    function getSourceFormat(file) {
+        if (!file || !file.path) return 'png';
+        var ext = file.path.split('.').pop().toLowerCase();
+        if (ext === 'jpg' || ext === 'jpeg') return 'jpg';
+        return 'png';
+    }
+
+    function setFormatDefault(sourceFormat) {
+        var select = document.getElementById('ic-format');
+        if (!select) return;
+        for (var i = 0; i < select.options.length; i++) {
+            if (select.options[i].value === sourceFormat) {
+                select.selectedIndex = i;
+                break;
+            }
+        }
+    }
+
+    function getSelectedFormat() {
+        var select = document.getElementById('ic-format');
+        return select ? select.value : 'png';
+    }
+
     document.addEventListener('alpine:init', () => {
         Alpine.store('ic', {
             editor: null,
@@ -12,6 +35,8 @@
 
             async open(file) {
                 this.file = file;
+
+                setFormatDefault(getSourceFormat(file));
 
                 window.MoonShine?.ui?.toggleModal('image-constructor');
                 await new Promise((r) => setTimeout(r, 300));
@@ -38,8 +63,6 @@
                     language: locale,
                     translations: translations,
                     source: file.url,
-                    defaultSavedImageType: config.defaultSaveType || 'png',
-                    defaultSavedImageQuality: (config.defaultSaveQuality || 92) / 100,
                     defaultSavedImageName: file.path ? file.path.split('/').pop() : undefined,
                     tabsIds: config.tabs || [],
                     defaultTabId: config.defaultTab || undefined,
@@ -83,8 +106,8 @@
                     onBeforeSave: (isCancel) => {
                         return !isCancel;
                     },
-                    onSave: (editedImageObject, designState) => {
-                        this._saveToServer(editedImageObject);
+                    onSave: (editedImageObject) => {
+                        this._saveToServer(editedImageObject, getSelectedFormat());
                     },
                 };
 
@@ -97,13 +120,13 @@
 
                 this.editor = new FilerobotImageEditor(container, editorConfig);
                 this.editor.render({
-                    onClose: (closingReason) => {
+                    onClose: () => {
                         this.close();
                     },
                 });
             },
 
-            async _saveToServer(editedImageObject) {
+            async _saveToServer(editedImageObject, targetFormat) {
                 const config = window.ImageConstructorConfig || {};
 
                 try {
@@ -116,6 +139,7 @@
                     const formData = new FormData();
                     formData.append('source_path', this.file?.path || '');
                     formData.append('image', blob, fullName);
+                    formData.append('target_format', targetFormat || 'png');
 
                     const csrfToken =
                         document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
