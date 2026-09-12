@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Povly\MoonShineImageEditor\Services;
 
+use Intervention\Image\Encoders\AvifEncoder;
+use Intervention\Image\Encoders\JpegEncoder;
+use Intervention\Image\Encoders\PngEncoder;
+use Intervention\Image\Encoders\WebpEncoder;
+use Intervention\Image\Interfaces\EncodedImageInterface;
 use Intervention\Image\Laravel\Facades\Image;
 use Povly\MoonShineImageEditor\Contracts\ImageOptimizerInterface;
 use Povly\MoonShineImageEditor\Enums\ImageExtension;
@@ -38,20 +43,26 @@ final class ImageOptimizer implements ImageOptimizerInterface
             return $this->fullPath;
         }
 
-        $image = Image::read($this->fullPath);
+        $image = Image::decodePath($this->fullPath);
 
         $targetPath = $this->getConvertedPath($this->fullPath, $targetFormat);
         $quality = $this->config['quality'][$targetFormat] ?? 82;
 
-        match ($targetFormat) {
-            'jpg', 'jpeg' => $image->toJpeg(
+        $encoded = match ($targetFormat) {
+            'jpg', 'jpeg' => $image->encode(new JpegEncoder(
                 quality: $quality,
                 progressive: true,
                 strip: $this->config['optimize']['strip_metadata'] ?? true,
-            )->save($targetPath),
-            'png' => $image->toPng()->save($targetPath),
+            )),
+            'png' => $image->encode(new PngEncoder()),
             default => null,
         };
+
+        if ($encoded === null) {
+            return $this->fullPath;
+        }
+
+        $this->writeEncoded($encoded, $targetPath);
 
         if (! file_exists($targetPath)) {
             return $this->fullPath;
@@ -80,7 +91,7 @@ final class ImageOptimizer implements ImageOptimizerInterface
 
         $sizeBefore = filesize($this->fullPath);
 
-        $image = Image::read($this->fullPath);
+        $image = Image::decodePath($this->fullPath);
 
         $maxWidth = $this->config['optimize']['max_width'] ?? null;
         $maxHeight = $this->config['optimize']['max_height'] ?? null;
@@ -93,12 +104,12 @@ final class ImageOptimizer implements ImageOptimizerInterface
         $quality = $this->config['quality'][$extension] ?? 85;
 
         $encoded = match ($extension) {
-            'jpg', 'jpeg' => $image->toJpeg(
+            'jpg', 'jpeg' => $image->encode(new JpegEncoder(
                 quality: $quality,
                 progressive: true,
                 strip: $stripMetadata,
-            ),
-            'png' => $image->toPng(),
+            )),
+            'png' => $image->encode(new PngEncoder()),
             default => null,
         };
 
@@ -109,7 +120,7 @@ final class ImageOptimizer implements ImageOptimizerInterface
         $tempPath = dirname($this->fullPath).'/'.pathinfo($this->fullPath, PATHINFO_FILENAME).'.'.uniqid('', true).'.tmp';
 
         try {
-            $encoded->save($tempPath);
+            $this->writeEncoded($encoded, $tempPath);
 
             if (! file_exists($tempPath)) {
                 return;
@@ -134,8 +145,8 @@ final class ImageOptimizer implements ImageOptimizerInterface
         $quality = $this->config['convert']['webp']['quality'] ?? 80;
 
         try {
-            $image = Image::read($this->fullPath);
-            $image->toWebp(quality: $quality)->save($webpPath);
+            $image = Image::decodePath($this->fullPath);
+            $this->writeEncoded($image->encode(new WebpEncoder(quality: $quality)), $webpPath);
 
             if (! file_exists($webpPath)) {
                 return;
@@ -159,8 +170,8 @@ final class ImageOptimizer implements ImageOptimizerInterface
         $quality = $this->config['convert']['avif']['quality'] ?? 65;
 
         try {
-            $image = Image::read($this->fullPath);
-            $image->toAvif(quality: $quality)->save($avifPath);
+            $image = Image::decodePath($this->fullPath);
+            $this->writeEncoded($image->encode(new AvifEncoder(quality: $quality)), $avifPath);
 
             if (! file_exists($avifPath)) {
                 return;
@@ -182,6 +193,15 @@ final class ImageOptimizer implements ImageOptimizerInterface
                 unlink($avifPath);
             }
         }
+    }
+
+    /**
+     * Write an encoded image to disk. Intervention Image v4 removed
+     * EncodedImage::save(); encoded data is written via stream contents.
+     */
+    private function writeEncoded(EncodedImageInterface $encoded, string $path): void
+    {
+        file_put_contents($path, $encoded->toString());
     }
 
     private function getConvertedPath(string $originalPath, string $format): string
