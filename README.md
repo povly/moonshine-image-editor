@@ -22,11 +22,11 @@ Image editor for [MoonShine](https://moonshine-laravel.com/) admin panel powered
 
 ## Requirements
 
-- PHP 8.2+
-- Laravel 11+ / 12+
+- PHP 8.3+
+- Laravel 11+ / 12+ / 13+
 - MoonShine 4.x
 - `yurizoom/moonshine-media-manager` ^4.0
-- `intervention/image-laravel` ^1.0 (installs `intervention/image` ^3.0 automatically)
+- `intervention/image-laravel` ^4.0 (installs `intervention/image` ^4.0 automatically)
 - PHP Imagick extension (recommended) or GD
 
 ## Installation
@@ -51,7 +51,7 @@ Publish the Intervention Image config (optional):
 php artisan vendor:publish --provider="Intervention\Image\Laravel\ServiceProvider"
 ```
 
-This creates `config/image.php` where you can set the default driver (GD or Imagick).
+This creates `config/intervention-image.php` where you can set the default driver (GD, Imagick or Vips).
 
 Publish assets:
 
@@ -142,13 +142,20 @@ echo 'extension = imagick' | sudo tee /etc/php/conf.d/imagick.ini
 sudo apt install php-imagick
 ```
 
-The package auto-detects the driver — if Imagick is available it will be used, otherwise GD. You can also configure it explicitly in `config/image.php`:
+The package auto-detects the driver — if Imagick is available it will be used, otherwise GD. You can also configure it explicitly in `config/intervention-image.php`:
 
 ```php
 return [
     'driver' => extension_loaded('imagick')
         ? \Intervention\Image\Drivers\Imagick\Driver::class
         : \Intervention\Image\Drivers\Gd\Driver::class,
+
+    'options' => [
+        'autoOrientation' => true,
+        'decodeAnimation' => true,
+        'backgroundColor' => 'ffffff',
+        'strip' => false,
+    ],
 ];
 ```
 
