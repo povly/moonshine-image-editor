@@ -12,7 +12,7 @@
         }
     ],
     "require": {
-        "php": "^8.3",
+        "php": "^8.2",
         "intervention/image": "^4.0",
         "intervention/image-laravel": "^4.0",
         "moonshine/moonshine": "^4.0",

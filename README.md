@@ -22,7 +22,7 @@ Image editor for [MoonShine](https://moonshine-laravel.com/) admin panel powered
 
 ## Requirements
 
-- PHP 8.3+
+- PHP 8.2+
 - Laravel 11+ / 12+ / 13+
 - MoonShine 4.x
 - `yurizoom/moonshine-media-manager` ^4.0
